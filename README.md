@@ -18,6 +18,7 @@
 - Windows 10/11 x64
 - Для сборки: [.NET SDK 10](https://dotnet.microsoft.com/download)
 - Для установщика: [WiX Toolset v3](https://wixtoolset.org/)
+- Или установить готовый msi
 
 ## Запуск из исходников
 
