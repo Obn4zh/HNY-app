@@ -108,6 +108,15 @@ internal sealed class TrayContext : ApplicationContext
         _engine.Start();
         if (Array.IndexOf(args, "--demo") >= 0) _engine.DemoRequested = true;
         if (Array.IndexOf(args, "--plow") >= 0) _engine.PlowRequested = true;
+
+        // Для постановочных кадров: --intensity <множитель>, --plow-after <сек>.
+        if (ArgValue(args, "--intensity") is double level) _engine.Intensity = (float)level;
+        if (ArgValue(args, "--plow-after") is double plowAfter)
+        {
+            var plowTimer = new System.Windows.Forms.Timer { Interval = Math.Max(1, (int)(plowAfter * 1000)) };
+            plowTimer.Tick += (_, _) => { plowTimer.Stop(); _engine.PlowRequested = true; };
+            plowTimer.Start();
+        }
         if (Array.IndexOf(args, "--shed") >= 0)
         {
             // для самопроверки: через 6 секунд стряхнуть снег со всех окон
@@ -126,6 +135,12 @@ internal sealed class TrayContext : ApplicationContext
             timer.Tick += (_, _) => { timer.Stop(); ExitThread(); };
             timer.Start();
         }
+    }
+
+    static double? ArgValue(string[] args, string name)
+    {
+        int i = Array.IndexOf(args, name);
+        return i >= 0 && i + 1 < args.Length && double.TryParse(args[i + 1], CultureInfo.InvariantCulture, out var v) ? v : null;
     }
 
     void TogglePause()

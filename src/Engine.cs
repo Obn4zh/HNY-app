@@ -180,13 +180,19 @@ internal sealed unsafe partial class Engine : IDisposable
     /// <summary>Для --selftest: роняет три снежка на панель задач, чтобы проверить сборку снеговика.</summary>
     void SpawnDemoSnowman()
     {
+        // Предпочитаем панель задач главного монитора (на нём точка 0,0).
         Surface? target = null;
         foreach (var s in _surfList)
-            if (s.Visible.Count > 0 && (target == null || s.IsTaskbar)) target = s;
+        {
+            if (s.Visible.Count == 0) continue;
+            bool primaryTaskbar = s.IsTaskbar && s.Rect.Left <= 0 && s.Rect.Right > 0;
+            if (target == null || primaryTaskbar || (s.IsTaskbar && !(target.IsTaskbar && target.Rect.Left <= 0 && target.Rect.Right > 0)))
+                target = s;
+        }
         if (target == null) return;
         var (a, b) = target.Visible[0];
         float x = a + (b - a) * 0.3f, top = target.Rect.Top;
-        float[] radii = [26f, 19f, 13f];
+        float[] radii = [32f, 23f, 16f];
         for (int i = 0; i < radii.Length; i++)
         {
             float r = radii[i] * _scale;
