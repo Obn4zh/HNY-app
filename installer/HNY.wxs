@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <?define Version = "1.0.0" ?>
+  <?define Exe = "..\bin\Release\net10.0-windows\win-x64\publish\HNY.exe" ?>
+
+  <Product Id="*" Name="HNY" Language="1049" Codepage="1251" Version="$(var.Version)"
+           Manufacturer="HNY" UpgradeCode="6B1D5E0A-8C1F-4E7B-9B55-2A6C3F0D71E4">
+
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64"
+             Description="HNY — Happy New Year" SummaryCodepage="1251" />
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Уже установлена более новая версия HNY." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="HNY.ico" SourceFile="..\assets\HNY.ico" />
+    <Property Id="ARPPRODUCTICON" Value="HNY.ico" />
+    <Property Id="ARPCOMMENTS" Value="Happy New Year — снег, сугробы и гирлянды на рабочем столе" />
+
+    <!-- Перед обновлением и удалением просим запущенное приложение закрыться. -->
+    <util:CloseApplication Id="CloseHNY" Target="HNY.exe" CloseMessage="yes" RebootPrompt="no" Timeout="5" TerminateProcess="0" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="HNY" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="AppExe" Guid="*" Win64="yes">
+        <File Id="HNYexe" Source="$(var.Exe)" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HNY"
+                    Description="Happy New Year — снег на рабочем столе"
+                    WorkingDirectory="INSTALLFOLDER" Icon="HNY.ico" Advertise="yes" />
+        </File>
+      </Component>
+      <Component Id="Autostart" Guid="*" Win64="yes">
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                       Name="HNY" Type="string" Value="&quot;[INSTALLFOLDER]HNY.exe&quot;" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Main" Title="HNY" Description="Само приложение и ярлык в меню «Пуск»."
+             Level="1" Absent="disallow" AllowAdvertise="no" ConfigurableDirectory="INSTALLFOLDER">
+      <ComponentRef Id="AppExe" />
+    </Feature>
+    <Feature Id="AutostartFeature" Title="Запускать при входе в Windows"
+             Description="HNY будет включаться сам после загрузки системы."
+             Level="1" AllowAdvertise="no">
+      <ComponentRef Id="Autostart" />
+    </Feature>
+
+    <!-- Галочка «Запустить HNY» на последней странице. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Запустить HNY" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#HNYexe]" />
+    <CustomAction Id="LaunchApp" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+
+    <UI>
+      <UIRef Id="WixUI_FeatureTree" />
+      <!-- Лицензионного соглашения нет — пропускаем эту страницу. -->
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg" Order="3">NOT Installed</Publish>
+      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="3">NOT Installed</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApp">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+    </UI>
+  </Product>
+</Wix>
