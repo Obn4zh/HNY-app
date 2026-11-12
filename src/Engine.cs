@@ -17,6 +17,7 @@ internal sealed unsafe partial class Engine : IDisposable
     public volatile float Intensity = 1f;
     public volatile bool DemoRequested;
     public int ClumpsLanded;
+    public int BlockedMonitors;
 
     // ---- статистика для --selftest ----
     public long Frames;
@@ -311,16 +312,22 @@ internal sealed unsafe partial class Engine : IDisposable
         Native.EnumWindows(_enumWin, IntPtr.Zero);
         LastWindowCount = _wins.Count;
 
-        // Мониторы, целиком закрытые полноэкранным окном (игра, видео) — там снег не рисуем.
+        // Мониторы, на которых открыто полноэкранное окно (игра, видео) — там снег не рисуем.
         _blocked.Clear();
-        foreach (var w in _wins)
+        IntPtr foreground = Native.GetForegroundWindow();
+        for (int i = 0; i < _wins.Count; i++)
         {
-            if (w.IsTaskbar || Native.IsZoomed(w.Hwnd)) continue;
+            var w = _wins[i];
+            if (w.IsTaskbar || !IsFullscreenStyle(w.Hwnd)) continue;
             foreach (var m in _monitors)
-                if (w.Rect.Left <= m.Left && w.Rect.Top <= m.Top && w.Rect.Right >= m.Right && w.Rect.Bottom >= m.Bottom
-                    && !_blocked.Contains(m))
-                    _blocked.Add(m);
+            {
+                if (_blocked.Contains(m) || !(w.Rect.Left <= m.Left && w.Rect.Top <= m.Top && w.Rect.Right >= m.Right && w.Rect.Bottom >= m.Bottom))
+                    continue;
+                // Окно активно или ничем не перекрыто на этом мониторе — значит, его сейчас смотрят.
+                if (w.Hwnd == foreground || !AnyWindowAbove(i, m)) _blocked.Add(m);
+            }
         }
+        BlockedMonitors = _blocked.Count;
 
         foreach (var s in _surfList) s.Seen = false;
 
@@ -421,6 +428,24 @@ internal sealed unsafe partial class Engine : IDisposable
         }
         TaskbarSeen = taskbarSeen;
         LastSurfaceCount = _surfList.Count;
+    }
+
+    /// <summary>
+    /// Развёрнутое окно при скрытой панели задач тоже закрывает весь монитор, но у него есть заголовок.
+    /// Полноэкранное (видео в браузере, игра) заголовка не имеет, даже если до этого было развёрнуто.
+    /// </summary>
+    static bool IsFullscreenStyle(IntPtr hwnd)
+        => !Native.IsZoomed(hwnd) || (Native.GetWindowLong(hwnd, Native.GWL_STYLE) & Native.WS_CAPTION) != Native.WS_CAPTION;
+
+    bool AnyWindowAbove(int index, RECT m)
+    {
+        for (int j = 0; j < index; j++)
+        {
+            var o = _wins[j];
+            if (!o.IsTaskbar && o.Rect.Left < m.Right && o.Rect.Right > m.Left && o.Rect.Top < m.Bottom && o.Rect.Bottom > m.Top)
+                return true;
+        }
+        return false;
     }
 
     static void Subtract(List<(int A, int B)> list, int a, int b)

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -13,9 +13,9 @@
     <TieredPGO>true</TieredPGO>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ApplicationIcon>assets\HNY.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Product>HNY</Product>
-    <AssemblyTitle>HNY — Happy New Year</AssemblyTitle>
+    <AssemblyTitle>HNY вЂ” Happy New Year</AssemblyTitle>
     <Company>HNY</Company>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
@@ -24,7 +24,7 @@
     <Compile Include="src\**\*.cs" />
   </ItemGroup>
 
-  <!-- dotnet publish -c Release: один самодостаточный HNY.exe, .NET на компьютере не нужен -->
+  <!-- dotnet publish -c Release: РѕРґРёРЅ СЃР°РјРѕРґРѕСЃС‚Р°С‚РѕС‡РЅС‹Р№ HNY.exe, .NET РЅР° РєРѕРјРїСЊСЋС‚РµСЂРµ РЅРµ РЅСѓР¶РµРЅ -->
   <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>

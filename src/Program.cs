@@ -183,6 +183,7 @@ internal sealed class TrayContext : ApplicationContext
             bulbs drawn total={e.BulbsDrawn}
             plow runs={e.PlowRuns}
             clumps landed={e.ClumpsLanded}
+            blocked monitors={e.BlockedMonitors}
 
             """));
     }

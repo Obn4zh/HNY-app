@@ -41,6 +41,9 @@ internal static class Native
     public const int WS_EX_LAYERED = 0x80000;
     public const int WS_EX_NOACTIVATE = 0x08000000;
     public const int GWL_EXSTYLE = -20;
+    public const int GWL_STYLE = -16;
+    public const int WS_CAPTION = 0x00C00000;
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
 
     public const int SW_SHOWNOACTIVATE = 4;
     public const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10, SWP_NOOWNERZORDER = 0x200, SWP_NOSENDCHANGING = 0x400;

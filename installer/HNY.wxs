@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 
-  <?define Version = "1.0.0" ?>
+  <?define Version = "1.0.1" ?>
   <?define Exe = "..\bin\Release\net10.0-windows\win-x64\publish\HNY.exe" ?>
 
   <Product Id="*" Name="HNY" Language="1049" Codepage="1251" Version="$(var.Version)"
