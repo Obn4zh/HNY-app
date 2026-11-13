@@ -51,6 +51,8 @@ internal sealed class TrayContext : ApplicationContext
     readonly Icon _icon;
     readonly ToolStripMenuItem _pauseItem;
     readonly ToolStripMenuItem[] _intensityItems;
+    readonly Settings _settings = Settings.Load();
+    readonly Music _music;
     readonly string? _selfTestLog;
 
     static readonly (string Name, float Value)[] Levels =
@@ -66,31 +68,70 @@ internal sealed class TrayContext : ApplicationContext
         _overlay.CloseRequested = ExitThread;
         _icon = CreateIcon();
 
+        var cfg = _settings;
+        cfg.Intensity = Math.Clamp(cfg.Intensity, 0, Levels.Length - 1);
+        cfg.MusicVolume = Math.Clamp(cfg.MusicVolume, 0, 100);
+        _engine.Intensity = Levels[cfg.Intensity].Value;
+        _engine.Drifts = cfg.Drifts;
+        _engine.Snowballs = cfg.Snowballs;
+        _engine.Garland = cfg.Garland;
+        _engine.Plow = cfg.Plow;
+
+        // Музыка играет, пока идёт снег: не на паузе и без полноэкранных окон (видео, игры).
+        _music = new Music(Path.Combine(AppContext.BaseDirectory, "song.mp3"),
+            () => _settings.Music && !_engine.Paused && _engine.BlockedMonitors == 0)
+        {
+            TargetVolume = cfg.MusicVolume * 10,
+        };
+
         _pauseItem = new ToolStripMenuItem("Пауза", null, (_, _) => TogglePause());
         _intensityItems = new ToolStripMenuItem[Levels.Length];
         var intensity = new ToolStripMenuItem("Сила снегопада");
         for (int i = 0; i < Levels.Length; i++)
         {
             int index = i;
-            _intensityItems[i] = new ToolStripMenuItem(Levels[i].Name, null, (_, _) => SetIntensity(index)) { Checked = i == 1 };
+            _intensityItems[i] = new ToolStripMenuItem(Levels[i].Name, null, (_, _) => SetIntensity(index)) { Checked = i == cfg.Intensity };
             intensity.DropDownItems.Add(_intensityItems[i]);
         }
-        var drifts = new ToolStripMenuItem("Сугробы на окнах") { Checked = true, CheckOnClick = true };
-        drifts.CheckedChanged += (_, _) => _engine.Drifts = drifts.Checked;
+
+        var music = new ToolStripMenuItem("Музыка");
+        var musicOn = new ToolStripMenuItem("Играть во время снегопада") { Checked = cfg.Music, CheckOnClick = true };
+        musicOn.CheckedChanged += (_, _) => { _settings.Music = musicOn.Checked; _settings.Save(); };
+        music.DropDownItems.Add(musicOn);
+        music.DropDownItems.Add(new ToolStripSeparator());
+        // Громкость — ползунок прямо в меню.
+        var volumeLabel = new ToolStripLabel(VolumeText(cfg.MusicVolume));
+        var slider = new TrackBar
+        {
+            Minimum = 0, Maximum = 100, Value = cfg.MusicVolume,
+            SmallChange = 5, LargeChange = 10, TickFrequency = 10, TickStyle = TickStyle.BottomRight,
+            AutoSize = false, Size = new Size(200, 36),
+        };
+        slider.ValueChanged += (_, _) =>
+        {
+            _music.TargetVolume = slider.Value * 10;
+            volumeLabel.Text = VolumeText(slider.Value);
+            _settings.MusicVolume = slider.Value;
+            _settings.Save();
+        };
+        music.DropDownItems.Add(volumeLabel);
+        music.DropDownItems.Add(new ToolStripControlHost(slider) { AutoSize = false, Size = new Size(210, 38) });
+        if (!_music.Available)
+        {
+            music.Enabled = false;
+            music.Text = "Музыка (нет файла song.mp3)";
+        }
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_pauseItem);
         menu.Items.Add(intensity);
-        menu.Items.Add(drifts);
-        var balls = new ToolStripMenuItem("Лепить снежки мышью") { Checked = true, CheckOnClick = true };
-        balls.CheckedChanged += (_, _) => _engine.Snowballs = balls.Checked;
-        menu.Items.Add(balls);
-        var garland = new ToolStripMenuItem("Гирлянда на окнах") { Checked = true, CheckOnClick = true };
-        garland.CheckedChanged += (_, _) => _engine.Garland = garland.Checked;
-        menu.Items.Add(garland);
-        var plow = new ToolStripMenuItem("Снегоуборщик выезжает сам") { Checked = true, CheckOnClick = true };
-        plow.CheckedChanged += (_, _) => _engine.Plow = plow.Checked;
-        menu.Items.Add(plow);
+        menu.Items.Add(music);
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(Toggle("Сугробы на окнах", cfg.Drifts, v => { _engine.Drifts = v; _settings.Drifts = v; }));
+        menu.Items.Add(Toggle("Лепить снежки мышью", cfg.Snowballs, v => { _engine.Snowballs = v; _settings.Snowballs = v; }));
+        menu.Items.Add(Toggle("Гирлянда на окнах", cfg.Garland, v => { _engine.Garland = v; _settings.Garland = v; }));
+        menu.Items.Add(Toggle("Снегоуборщик выезжает сам", cfg.Plow, v => { _engine.Plow = v; _settings.Plow = v; }));
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Вызвать снегоуборщик", null, (_, _) => _engine.PlowRequested = true);
         menu.Items.Add("Стряхнуть снег", null, (_, _) => _engine.ClearRequested = true);
         menu.Items.Add(new ToolStripSeparator());
@@ -104,7 +145,6 @@ internal sealed class TrayContext : ApplicationContext
             Visible = true,
         };
         _tray.DoubleClick += (_, _) => TogglePause();
-
         _engine.Start();
         if (Array.IndexOf(args, "--demo") >= 0) _engine.DemoRequested = true;
         if (Array.IndexOf(args, "--plow") >= 0) _engine.PlowRequested = true;
@@ -149,17 +189,29 @@ internal sealed class TrayContext : ApplicationContext
         _pauseItem.Text = _engine.Paused ? "Продолжить" : "Пауза";
     }
 
+    ToolStripMenuItem Toggle(string text, bool value, Action<bool> apply)
+    {
+        var item = new ToolStripMenuItem(text) { Checked = value, CheckOnClick = true };
+        item.CheckedChanged += (_, _) => { apply(item.Checked); _settings.Save(); };
+        return item;
+    }
+
     void SetIntensity(int index)
     {
         _engine.Intensity = Levels[index].Value;
         for (int i = 0; i < _intensityItems.Length; i++) _intensityItems[i].Checked = i == index;
+        _settings.Intensity = index;
+        _settings.Save();
     }
+
+    static string VolumeText(int percent) => $"Громкость: {percent}%";
 
     protected override void ExitThreadCore()
     {
         _tray.Visible = false;
-        _engine.Dispose();
         if (_selfTestLog != null) WriteSelfTest(_selfTestLog);
+        _music.Dispose();
+        _engine.Dispose();
         _tray.Dispose();
         _overlay.DestroyHandle();
         _icon.Dispose();
@@ -184,6 +236,7 @@ internal sealed class TrayContext : ApplicationContext
             plow runs={e.PlowRuns}
             clumps landed={e.ClumpsLanded}
             blocked monitors={e.BlockedMonitors}
+            music={_music.State}
 
             """));
     }

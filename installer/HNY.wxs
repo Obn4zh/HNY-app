@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 
-  <?define Version = "1.0.1" ?>
-  <?define Exe = "..\bin\Release\net10.0-windows\win-x64\publish\HNY.exe" ?>
+  <?define Version = "1.1.0" ?>
+  <?define Publish = "..\bin\Release\net10.0-windows\win-x64\publish" ?>
 
   <Product Id="*" Name="HNY" Language="1049" Codepage="1251" Version="$(var.Version)"
            Manufacturer="HNY" UpgradeCode="6B1D5E0A-8C1F-4E7B-9B55-2A6C3F0D71E4">
@@ -31,11 +31,14 @@
 
     <DirectoryRef Id="INSTALLFOLDER">
       <Component Id="AppExe" Guid="*" Win64="yes">
-        <File Id="HNYexe" Source="$(var.Exe)" KeyPath="yes">
+        <File Id="HNYexe" Source="$(var.Publish)\HNY.exe" KeyPath="yes">
           <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="HNY"
                     Description="Happy New Year — снег на рабочем столе"
                     WorkingDirectory="INSTALLFOLDER" Icon="HNY.ico" Advertise="yes" />
         </File>
+      </Component>
+      <Component Id="Song" Guid="*" Win64="yes">
+        <File Id="SongMp3" Source="$(var.Publish)\song.mp3" KeyPath="yes" />
       </Component>
       <Component Id="Autostart" Guid="*" Win64="yes">
         <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run"
@@ -46,6 +49,7 @@
     <Feature Id="Main" Title="HNY" Description="Само приложение и ярлык в меню «Пуск»."
              Level="1" Absent="disallow" AllowAdvertise="no" ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="AppExe" />
+      <ComponentRef Id="Song" />
     </Feature>
     <Feature Id="AutostartFeature" Title="Запускать при входе в Windows"
              Description="HNY будет включаться сам после загрузки системы."

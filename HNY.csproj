@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -13,7 +13,7 @@
     <TieredPGO>true</TieredPGO>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ApplicationIcon>assets\HNY.ico</ApplicationIcon>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Product>HNY</Product>
     <AssemblyTitle>HNY вЂ” Happy New Year</AssemblyTitle>
     <Company>HNY</Company>
@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <Compile Include="src\**\*.cs" />
+    <!-- Музыка лежит рядом с exe (не внутри single-file), её проигрывает MCI по пути к файлу. -->
+    <None Include="song.mp3" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
   <!-- dotnet publish -c Release: РѕРґРёРЅ СЃР°РјРѕРґРѕСЃС‚Р°С‚РѕС‡РЅС‹Р№ HNY.exe, .NET РЅР° РєРѕРјРїСЊСЋС‚РµСЂРµ РЅРµ РЅСѓР¶РµРЅ -->
